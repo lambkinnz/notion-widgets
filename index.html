@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timezone Clock Widget</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 16px;
+            background-color: transparent;
+            color: #37352f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .widget-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 280px;
+            text-align: center;
+        }
+        .clock {
+            font-size: 2.5rem;
+            font-weight: 500;
+            margin: 16px 0;
+            font-variant-numeric: tabular-nums;
+        }
+        .date {
+            font-size: 1rem;
+            color: #6b6b6b;
+            margin-bottom: 16px;
+        }
+        .timezone {
+            font-size: 0.9rem;
+            color: #6b6b6b;
+            margin-bottom: 16px;
+        }
+        .dropdown {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        .dropdown-btn {
+            background-color: #f7f6f3;
+            color: #37352f;
+            padding: 8px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        .dropdown-btn:hover {
+            background-color: #efeeea;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            border-radius: 4px;
+            margin-top: 4px;
+        }
+        .dropdown-content.show {
+            display: block;
+        }
+        .dropdown-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .dropdown-item:hover {
+            background-color: #f7f6f3;
+        }
+        .arrow {
+            border: solid #6b6b6b;
+            border-width: 0 2px 2px 0;
+            display: inline-block;
+            padding: 3px;
+            transform: rotate(45deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="widget-container">
+        <div class="clock" id="clock">00:00:00</div>
+        <div class="date" id="date">Monday, January 1, 2023</div>
+        <div class="timezone" id="timezone-display">UTC</div>
+        <div class="dropdown">
+            <button class="dropdown-btn" id="dropdown-btn">
+                <span>Select Timezone</span>
+                <span class="arrow"></span>
+            </button>
+            <div class="dropdown-content" id="dropdown-content">
+                <!-- Timezones will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Common timezones
+        const timezones = [
+            { name: 'UTC', value: 'UTC' },
+            { name: 'New York (EST/EDT)', value: 'America/New_York' },
+            { name: 'Los Angeles (PST/PDT)', value: 'America/Los_Angeles' },
+            { name: 'London (GMT/BST)', value: 'Europe/London' },
+            { name: 'Paris (CET/CEST)', value: 'Europe/Paris' },
+            { name: 'Berlin (CET/CEST)', value: 'Europe/Berlin' },
+            { name: 'Tokyo (JST)', value: 'Asia/Tokyo' },
+            { name: 'Sydney (AEST/AEDT)', value: 'Australia/Sydney' },
+            { name: 'Beijing (CST)', value: 'Asia/Shanghai' },
+            { name: 'Dubai (GST)', value: 'Asia/Dubai' },
+            { name: 'Moscow (MSK)', value: 'Europe/Moscow' },
+            { name: 'São Paulo (BRT)', value: 'America/Sao_Paulo' },
+            { name: 'Singapore (SGT)', value: 'Asia/Singapore' },
+            { name: 'Mumbai (IST)', value: 'Asia/Kolkata' }
+        ];
+
+        // DOM elements
+        const clockElement = document.getElementById('clock');
+        const dateElement = document.getElementById('date');
+        const timezoneDisplay = document.getElementById('timezone-display');
+        const dropdownBtn = document.getElementById('dropdown-btn');
+        const dropdownContent = document.getElementById('dropdown-content');
+
+        // Populate dropdown with timezones
+        timezones.forEach(tz => {
+            const item = document.createElement('div');
+            item.className = 'dropdown-item';
+            item.textContent = tz.name;
+            item.addEventListener('click', () => {
+                selectTimezone(tz.value, tz.name);
+                dropdownContent.classList.remove('show');
+            });
+            dropdownContent.appendChild(item);
+        });
+
+        // Toggle dropdown
+        dropdownBtn.addEventListener('click', () => {
+            dropdownContent.classList.toggle('show');
+        });
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', (event) => {
+            if (!event.target.matches('.dropdown-btn') && !event.target.matches('.arrow')) {
+                dropdownContent.classList.remove('show');
+            }
+        });
+
+        // Get saved timezone from localStorage or default to browser timezone
+        let currentTimezone = localStorage.getItem('selectedTimezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
+        let currentTimezoneName = timezones.find(tz => tz.value === currentTimezone)?.name || currentTimezone;
+
+        // Update dropdown button text
+        dropdownBtn.querySelector('span').textContent = currentTimezoneName;
+        timezoneDisplay.textContent = currentTimezoneName;
+
+        // Function to select timezone
+        function selectTimezone(timezone, timezoneName) {
+            currentTimezone = timezone;
+            currentTimezoneName = timezoneName;
+            localStorage.setItem('selectedTimezone', timezone);
+            dropdownBtn.querySelector('span').textContent = timezoneName;
+            timezoneDisplay.textContent = timezoneName;
+            updateClock();
+        }
+
+        // Function to update clock
+        function updateClock() {
+            const now = new Date();
+            
+            // Format time for the selected timezone
+            const options = {
+                timeZone: currentTimezone,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            };
+            
+            const timeString = now.toLocaleTimeString('en-US', options);
+            
+            // Format date for the selected timezone
+            const dateOptions = {
+                timeZone: currentTimezone,
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            };
+            
+            const dateString = now.toLocaleDateString('en-US', dateOptions);
+            
+            // Update DOM
+            clockElement.textContent = timeString;
+            dateElement.textContent = dateString;
+        }
+
+        // Update clock immediately and then every second
+        updateClock();
+        setInterval(updateClock, 1000);
+    </script>
+</body>
+</html>
